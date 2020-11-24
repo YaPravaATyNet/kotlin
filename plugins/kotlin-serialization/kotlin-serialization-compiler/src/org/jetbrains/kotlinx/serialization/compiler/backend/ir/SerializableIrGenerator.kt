@@ -50,8 +50,10 @@ class SerializableIrGenerator(
 
     private val addElementFun = serialDescImplClass.findFunctionSymbol(CallingConventions.addElement)
 
-    val throwMissedFieldExceptionFunc = compilerContext.referenceFunctions(SINGLE_MASK_FIELD_MISSING_FUNC_FQ).single()
-    val throwMissedFieldExceptionArrayFunc = compilerContext.referenceFunctions(ARRAY_MASK_FIELD_MISSING_FUNC_FQ).single()
+    val throwMissedFieldExceptionFunc =
+        if (useFieldMissingOptimization) compilerContext.referenceFunctions(SINGLE_MASK_FIELD_MISSING_FUNC_FQ).single() else null
+    val throwMissedFieldExceptionArrayFunc =
+        if (useFieldMissingOptimization) compilerContext.referenceFunctions(ARRAY_MASK_FIELD_MISSING_FUNC_FQ).single() else null
 
     private fun IrClass.hasSerializableAnnotationWithoutArgs(): Boolean {
         val annot = getAnnotation(SerializationAnnotations.serializableAnnotationFqName) ?: return false
@@ -160,7 +162,7 @@ class SerializableIrGenerator(
 
             throwErrorExpr = irInvoke(
                 null,
-                throwMissedFieldExceptionFunc,
+                throwMissedFieldExceptionFunc!!,
                 irGet(seenVars[0]),
                 irInt(goldenMask),
                 getSerialDescriptorExpr(),
@@ -205,7 +207,7 @@ class SerializableIrGenerator(
             throwErrorExpr = irBlock {
                 +irInvoke(
                     null,
-                    throwMissedFieldExceptionArrayFunc,
+                    throwMissedFieldExceptionArrayFunc!!,
                     createPrimitiveArrayOfExpression(compilerContext.irBuiltIns.intType, goldenMaskList.indices.map { irGet(seenVars[it]) }),
                     createPrimitiveArrayOfExpression(compilerContext.irBuiltIns.intType, goldenMaskList.map { irInt(it) }),
                     getSerialDescriptorExpr(),
